@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Gamedev Canvas Workshop</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet"> 
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { 
+            background-color: #000000;
+            border: 5.5px solid grey;
+            display: block; 
+            margin: 0 auto; 
+            }
+        .box1 {
+            background-color: aqua;
+            padding: 10px;
+        }
+        .box2 {
+            background-color: black;
+            margin: 0 auto;
+            display: block;
+            width: 125px;
+            text-align: center;
+            padding: 12.5px;
+            margin-bottom: 5px;
+        }
+        .btn {
+            background-color: aliceblue;
+            width: 35px;
+            margin: 0 auto;
+            padding: 2.5px;
+        }
+    </style>
+</head>
+<body onload="startGame()">
+<canvas id="ctx" width="500px" height="380px"></canvas>
+<p id="fire">Shooting</p>
+<div class="box1">
+    <div class="box2">
+    <button class="btn" id="W">W</button><br><br>
+    <button class="btn" id="A">A</button>
+    <button class="btn" id="S">S</button>
+    <button class="btn" id="D">D</button>  
+    </div>
+    <div class="box2">
+        <button class="btn" id="up">&#8593;</button><br><br>
+        <button class="btn" id="left">&#8592;</button>
+        <button class="btn" id="down">&#8595;</button>
+        <button class="btn" id="right">&#8594;</button>  
+    </div>
+</div>
+
+<script>
+    var canvas = document.getElementById("ctx");
+    var ctx = canvas.getContext("2d");
+    var x = canvas.width/2;
+    var y = canvas.height/2;
+    var frameCount = 0; 
+    var score = 0;
+    var hp = 5;
+    var hpMax = 5;
+    var attkSpd = 1;
+    var enemyKilled = 0;
+    var gameStartedTime = Date.now();
+    var coin = 0;
+    var myMusic;
+    var myFire;
+
+    var rightPressed = false;
+    var leftPressed = false;
+    var upPressed = false;
+    var downPressed = false;
+    var spacePressed = false;
+    var wPressed = false;
+    var aPressed = false;
+    var sPressed = false;
+    var dPressed =false;
+
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+    myMusic = new Audio('BGM.mp3');
+    myFire = new Audio('laser.mp3');
+    gameOver =  new Audio('Game-over.mp3');
+    explosion = new Audio('explosion.mp3');
+    explosion2 = new Audio('explosion.mp3');
+    explosion3 = new Audio('explosion3.mp3');
+    explosion4 = new Audio('explosion4.mp3');
+    hit = new Audio('hit.mp3');
+        myMusic.addEventListener('ended', function() {
+        this.currentTime = 0;
+        this.play();
+        }, false);
+        myMusic.play();
+    function startGame() {
+        setInterval(gameUpdate,10);
+        
+         
+        
+    }
+
+
+    function gameArea() {
+        canvas : document.createElement("canvas")
+    }
+
+function drawBall() {
+    ctx.beginPath();
+    drawMap();
+    ctx.drawImage(img.player,0,0,img.player.width,img.player.height,x-20,y-20,40,40);
+    
+    
+    ctx.closePath();
+}
+
+function drawMap() {
+    ctx.drawImage(img.map,0,0,img.map.width,img.map.height,0,0,500,380);
+}
+
+function drawHpBar() {
+    ctx.fillStyle = 'green';
+    var bar = 100*hp/hpMax;
+    if(bar < 0)
+        bar = 0
+    ctx.fillRect(20,49,bar,12.5);
+    ctx.strokeStyle = 'white';
+    ctx.strokeRect(20,49,100,12.5);
+}
+
+function charMovement() {
+            if(dPressed) {
+                x += 1.55;
+            }
+            else if(aPressed) {
+                x -= 1.55;
+            }
+            if(sPressed) {
+                y += 1.55;
+            }
+            else if(wPressed) {
+                y -= 1.55;
+            }
+}
+function charAttack(pX, pY) {
+    
+    if(frameCount % (18/attkSpd) === 0) {
+                randomlyGenerateBullet();                
+    }
+}
+
+
+ 
+testCollisionEntity = function (entity1,entity2){       //return if colliding (true/false)
+        var rect1 = {
+                x:entity1.x-entity1.width/2,
+                y:entity1.y-entity1.height/2,
+                width:entity1.width,
+                height:entity1.height,
+        }
+        var rect2 = {
+                x:entity2.x-entity2.width/2,
+                y:entity2.y-entity2.height/2,
+                width:entity2.width,
+                height:entity2.height,
+        }
+        return testCollisionRectRect(rect1,rect2);
+       
+}
+
+testCollisionRectRect = function(rect1,rect2){
+        return rect1.x <= rect2.x+rect2.width
+                && rect2.x <= rect1.x+rect1.width
+                && rect1.y <= rect2.y + rect2.height
+                && rect2.y <= rect1.y + rect1.height;
+}
+
+testCollisionChar = function (entity2){      
+        var rect1 = {
+                x:x-12.5,
+                y:y-12.5,
+                width:20,
+                height:17.5,
+        }
+        var rect2 = {
+                x:entity2.x-entity2.width/2,
+                y:entity2.y-entity2.height/2,
+                width:entity2.width,
+                height:entity2.height,
+        }
+        return testCollisionRectRect(rect1,rect2);
+       
+}
+
+var upgradeList = {};
+var bulletList = { };
+var enemyList = {};
+var img = {}
+img.projectile = new Image();
+img.projectile.src = "img/bullet.png";
+img.alien1 = new Image();
+img.alien1.src = "img/alien1.png";
+img.alien1_2 = new Image();
+img.alien1_2.src = "img/alien1_2.png";
+img.alien2 = new Image();
+img.alien2.src = "img/alien2.png";
+img.player = new Image();
+img.player.src = "img/player.png";
+img.map = new Image();
+img.map.src = "img/backGround.jpg";
+img.coin = new Image();
+img.coin.src = "img/coin.png";
+img.fix = new Image();
+img.fix.src = "img/fix.png";
+img.fireRate = new Image();
+img.fireRate.src = "img/fireRate.png";
+img.nuke = new Image();
+img.nuke.src = "img/nuke.png";
+
+
+Upgrade = function (id,x,y,spdX,spdY,width,height,category,color){
+        var asd = {
+                x:x,
+                spdX:spdX,
+                y:y,
+                spdY:spdY,
+                name:'E',
+                id:id,
+                width:width,
+                height:height,
+                color:color,
+                //
+                category:category,
+        };
+        upgradeList[id] = asd;
+}
+ 
+randomlyGenerateUpgrade = function(){
+        //Math.random() returns a number between 0 and 1
+        var x = Math.floor((Math.random() * 490) + 10);
+        var y = Math.floor((Math.random() * 370) + 10);
+        var height = 15;
+        var width = 15;
+        var id = Math.random();
+        var buffId = Math.floor((Math.random() * 4) + 1);
+        var color = 'white';
+        var spdX
+        var spdY
+
+        console.log(id)
+       
+        if(buffId == 1){
+                var category = 'score';
+                var color = 'orange';
+        }
+        if(buffId == 2){
+                var category = 'medicPack';
+                var color = 'purple';
+        }
+        if(buffId == 3){
+                var category = 'attkSpd';
+                var color = 'red';
+        }
+        if(buffId == 4){
+                var category = 'nuke';
+                var color = 'blue';
+        }
+
+       
+        Upgrade(id,x,y,spdX,spdY,width,height,category,color);
+}
+
+randomlyGenerateBullet = function(){
+        //Math.random() returns a number between 0 and 1
+        
+        var height = 15;
+        var width = 15;
+        var id = Math.random();
+       
+            
+            if(rightPressed ) {
+                var spdX = 6;
+                var spdY = 0;
+                var bulletX = x+12.5;
+                var bulletY = y;
+                audio.playSound('laserSound');
+            }
+            
+            
+            if(leftPressed) {
+                var spdX = -6;
+                var spdY = 0;
+                var bulletX = x-12.5;
+                var bulletY = y;
+                audio.playSound('laserSound');
+            }
+            if(leftPressed && downPressed) {
+                var spdX = -6;
+                var spdY = 6;
+                var bulletX = x;
+                var bulletY = y;
+                audio.playSound('laserSound');
+            }
+            else if(leftPressed && upPressed) {
+                var spdX = -6;
+                var spdY = -6;
+                var bulletX = x;
+                var bulletY = y;
+                audio.playSound('laserSound');
+            }
+            else if(rightPressed && downPressed) {
+                var spdX = 6;
+                var spdY = 6;
+                var bulletX = x;
+                var bulletY = y;
+                audio.playSound('laserSound');
+            }
+            else if(rightPressed && upPressed) {
+                var spdX = 6;
+                var spdY = -6;
+                var bulletX = x;
+                var bulletY = y;
+                audio.playSound('laserSound');
+            }
+            else if(downPressed) {
+                var spdX = 0;
+                var spdY = 6;
+                var bulletX = x;
+                var bulletY = y+12.5;
+                audio.playSound('laserSound');
+            }
+            else if(upPressed) {
+                var spdX = 0;
+                var spdY = -6;
+                var bulletX = x;
+                var bulletY = y-12.5;
+                audio.playSound('laserSound');
+            }
+            
+        Bullet(id,bulletX,bulletY,spdX,spdY,width,height);
+}
+
+Bullet = function (id,x,y,spdX,spdY,width,height){
+        var asd = {
+                x:x,
+                spdX:spdX,
+                y:y,
+                spdY:spdY,
+                name:'E',
+                id:id,
+                width:width,
+                height:height,
+                color:'black',
+        };
+        bulletList[id] = asd;
+}
+Enemy = function (id,x,y,spdX,spdY,width,height,hp,charID){
+        
+        var self = {
+                x:x,
+                spdX:spdX,
+                y:y,
+                spdY:spdY,
+                name:'E',
+                id:id,
+                width:width,
+                height:height,
+                charID:charID,
+                hp:hp,
+        };
+        enemyList[id] = self;
+        self.updatePosition = function(){
+	}
+       
+}
+ 
+randomlyGenerateEnemy = function(){
+        //Math.random() returns a number between 0 and 1
+        /*
+        var x = Math.random()*550;
+        var y = Math.random()*480;
+        */
+        var sparnRng = Math.floor((Math.random() * 12) + 1);
+        if(sparnRng == 1) {
+            var x = 10;
+            var y = 10;
+        }
+        if(sparnRng == 2) {
+            var x = 490;
+            var y = 10;
+        }
+        if(sparnRng == 3) {
+            var x = 10;
+            var y = 370;
+        }
+        if(sparnRng == 4) {
+            var x = 490;
+            var y = 370;
+        }
+        if(sparnRng == 5) {
+            var x = 490;
+            var y = 185;
+        }
+        if(sparnRng == 6) {
+            var x = 10;
+            var y = 185;
+        }
+        if(sparnRng == 7) {
+            var x = 245;
+            var y = 10;
+        }
+        if(sparnRng == 8) {
+            var x = 245;
+            var y = 370;
+        }
+        if(sparnRng == 9) {
+            var x = 10;
+            var y = 92.5;
+        }
+        if(sparnRng == 10) {
+            var x = 10;
+            var y = 277.5;
+        }
+        if(sparnRng == 11) {
+            var x = 490;
+            var y = 277.5;
+        }
+        if(sparnRng == 12) {
+            var x = 490;
+            var y = 92.5;
+        }
+        var height = 25 ;    //between 10 and 40
+        var width = 25 ;
+        var id = Math.random();
+        var spdX = 0;
+        var spdY = 0;
+        var hp = Math.floor((Math.random() * 2) + 1);
+        var img
+        var charID = hp;
+        Enemy(id,x,y,spdX,spdY,width,height,hp,charID);
+       
+}
+
+drawEntity = function(something){
+        ctx.save();
+        var x = something.x-something.width/2;
+        var y = something.y-something.height/2;
+        
+        ctx.drawImage(checkChar(something.charID,something.hp),0,0,checkChar(something.charID,something.hp).width,checkChar(something.charID,something.hp).height,x,y,something.width,something.height);
+        ctx.restore();
+}
+
+drawUpgrade = function(something){
+        var x = something.x-something.width/2;
+        var y = something.y-something.height/2;
+        ctx.save();
+        ctx.drawImage(upgradeCheck(something.category),0,0,upgradeCheck(something.category).width,upgradeCheck(something.category).height,x,y,something.width+10,something.height+10);
+        ctx.restore();
+              
+}
+
+upgradeCheck = function(buffID) {
+    if (buffID === 'score') {
+        return img.coin;
+    }
+    if (buffID === 'medicPack') {
+        return img.fix;
+    }
+    if (buffID === 'attkSpd') {
+        return img.fireRate;
+    }
+    if (buffID === 'nuke') {
+        return img.nuke;
+    }
+    
+}
+
+checkChar = function(CharID,hp) {
+    if (CharID == 1) {
+        return img.alien2;
+    }
+    if (CharID == 2 && hp == 2) {
+        return img.alien1;
+    }
+    if (CharID == 2 && hp == 1) {
+        return img.alien1_2;
+    }
+}
+
+drawProjectile = function(something){
+        var x = something.x-something.width/2;
+        var y = something.y-something.height/2;
+        ctx.save();
+        ctx.drawImage(img.projectile,0,0,img.projectile.width,img.projectile.height,x,y,something.width,something.height);
+        ctx.restore();
+}
+updateEntity = function (something){
+        updateEntityPosition(something);
+        enemyPosition(something);
+        drawEntity(something);
+}
+
+updateProjectile = function (something){
+        updateEntityPosition(something);
+        drawProjectile(something);
+}
+
+updateUpgrade = function (something){
+        drawUpgrade(something);
+}
+
+enemyPosition = function(something) {
+        var diffX = x - something.x;
+		var diffY = y - something.y;
+		
+		if(diffX > 0)
+        something.x += 1.15;
+		else
+        something.x -= 1.15;
+			
+		if(diffY > 0)
+        something.y += 1.15;
+		else
+        something.y -= 1.15;
+}
+updateEntityPosition = function(something){
+        something.x += something.spdX;
+        something.y += something.spdY;
+                       
+        if(something.x < 0 || something.x > 500){
+                delete something.x;
+        }
+        if(something.y < 0 || something.y > 380){
+                delete something.y;
+        }
+}
+
+function mapBorder() {
+    if(x+25 > canvas.width)
+        x = canvas.width-25;
+    else if(x-25 < 0)
+        x = 0+25;
+    if(y+25 > canvas.height)
+        y = canvas.height-25;
+    else if(y-25 < 0)
+        y = 0+25;
+}
+
+function gameUpdate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    score++;
+    drawBall();
+
+    charMovement();
+    charAttack(x, y);
+    mapBorder();
+    frameCount++;
+    if(frameCount % 1000 === 0)       //every 3 sec
+                randomlyGenerateUpgrade();
+    if(frameCount % 35 === 0)      //every 4 sec
+                randomlyGenerateEnemy();
+    for(var key in enemyList){
+        updateEntity(enemyList[key]);
+        var isColliding = testCollisionChar(enemyList[key]);
+                if(isColliding){
+                        hp = hp - 1;
+                        audio.playSound('playerHit');
+                        delete enemyList[key];
+                }
+        if(hp <= 0) {
+            var timeSurvived = Date.now() - gameStartedTime;           
+            myMusic.pause();
+            gameOver.play();
+            drawBall();
+            drawHpBar();
+            ctx.font = "10pt Roboto";
+            ctx.fillStyle = "white";
+            ctx.fillText('Score: ' + score,400,60);
+            ctx.fillText('Enemy Killed : ' + enemyKilled,205,60 );
+            ctx.fillText('HP : ' + hp,50,60 );
+            ctx.fillText('Time : ' + (Date.now() - gameStartedTime)/1000,215,25 ); 
+            ctx.fill();
+            alert('\t\tYou lost ! \r\n\r\nYou survived for ' +timeSurvived/1000+ ' second\r\nScore : ' + score + '\r\nEnemy Killed : ' + enemyKilled);  
+            document.location.reload();
+        }
+        if(score >= 2500000) {
+            document.location.reload();
+        }
+        }
+    for(var key in bulletList){
+         updateProjectile(bulletList[key]);
+               
+        for(var key2 in enemyList){
+            var isColliding = testCollisionEntity(bulletList[key],enemyList[key2]);
+                if(isColliding){
+                    audio.playSound('hitSound');
+                    enemyList[key2].hp = enemyList[key2].hp - 1;
+                    delete bulletList[key];
+                    if (enemyList[key2].hp <= 0) {
+                        
+                        delete enemyList[key2];
+                        
+                    }
+                    score += 250;
+                    enemyKilled++;
+                    break;
+                }                  
+        }
+    }
+    for(var key in upgradeList){
+                updateUpgrade(upgradeList[key]);
+                var isColliding = testCollisionChar(upgradeList[key]);
+                if(isColliding){
+                        if(upgradeList[key].category === 'score')
+                                score += 2500;
+                                coin++;
+                        if(upgradeList[key].category === 'attkSpd') {
+                                attkSpd = 1.5 ;
+                                attkSpdTimer();
+                        }
+                        if(upgradeList[key].category === 'medicPack') {
+                                hp = hp + 1
+                                if (hp > 5)
+                                hp = 5
+                        }
+                        if(upgradeList[key].category === 'nuke') {
+                            for(var key in enemyList){
+                            score += 250;
+                            enemyKilled++;
+                            delete enemyList[key];
+                            }
+                        }
+
+                        delete upgradeList[key];
+                }
+    }
+    drawHpBar();
+    ctx.font = "10pt Roboto";
+    ctx.fillStyle = "white";
+    ctx.fillText('Score: ' + score,400,60);
+    ctx.fillText('Coin: ' + coin,330,60);
+    ctx.fillText('Enemy Killed : ' + enemyKilled,205,60 );
+    ctx.fillText('HP : ' + hp,50,60 );
+    ctx.fillText('Time : ' + (Date.now() - gameStartedTime)/1000,215,25 ); 
+    ctx.fill();
+}
+
+function attkSpdTimer() {
+  setTimeout(function(){ attkSpd=1; }, 7500);
+}
+
+
+function keyDownHandler(e) {
+        if(e.key == "Right" || e.key == "ArrowRight") {
+            rightPressed = true;
+            document.getElementById("right").style.backgroundColor = "blue";
+            document.getElementById("right").style.color = "white";
+
+        }
+        else if(e.key == "Left" || e.key == "ArrowLeft") {
+            leftPressed = true;
+            document.getElementById("left").style.backgroundColor = "blue";
+            document.getElementById("left").style.color = "white";
+ 
+        }
+        else if(e.key == "Up" || e.key == "ArrowUp") {
+            upPressed = true;
+            document.getElementById("up").style.backgroundColor = "blue";
+            document.getElementById("up").style.color = "white";
+
+        }
+        else if(e.key == "Down" || e.key == "ArrowDown") {
+            downPressed = true;
+            document.getElementById("down").style.backgroundColor = "blue";
+            document.getElementById("down").style.color = "white";
+
+        }
+        else if(e.keyCode == 32) {
+            spacePressed = true;
+            
+        }
+        else if(e.keyCode == 87) {
+            wPressed = true;
+            document.getElementById("W").style.backgroundColor = "blue";
+            document.getElementById("W").style.color = "white";
+        }
+        else if(e.keyCode == 65) {
+            aPressed = true;
+            document.getElementById("A").style.backgroundColor = "blue";
+            document.getElementById("A").style.color = "white";
+        }
+        else if(e.keyCode == 83) {
+            sPressed = true;
+            document.getElementById("S").style.backgroundColor = "blue";
+            document.getElementById("S").style.color = "white";
+        }
+        else if(e.keyCode == 68) {
+            dPressed = true;
+            document.getElementById("D").style.backgroundColor = "blue";
+            document.getElementById("D").style.color = "white";
+        }
+    }
+
+    function keyUpHandler(e) {
+        if(e.key == "Right" || e.key == "ArrowRight") {
+            rightPressed = false;
+            document.getElementById("right").style.backgroundColor = "aliceblue";
+            document.getElementById("right").style.color = "black";
+        }
+        else if(e.key == "Left" || e.key == "ArrowLeft") {
+            leftPressed = false;
+            document.getElementById("left").style.backgroundColor = "aliceblue";
+            document.getElementById("left").style.color = "black";
+        }
+        else if(e.key == "Up" || e.key == "ArrowUp") {
+            upPressed = false;
+            document.getElementById("up").style.backgroundColor = "aliceblue";
+            document.getElementById("up").style.color = "black";
+        }
+        else if(e.key == "Down" || e.key == "ArrowDown") {
+            downPressed = false;
+            document.getElementById("down").style.backgroundColor = "aliceblue";
+            document.getElementById("down").style.color = "black";
+        }
+        else if(e.keyCode == 32) {
+            spacePressed = false;
+        }
+        else if(e.keyCode == 87) {
+            wPressed = false;
+            document.getElementById("W").style.backgroundColor = "aliceblue";
+            document.getElementById("W").style.color = "black";
+        }
+        else if(e.keyCode == 65) {
+            aPressed = false;
+            document.getElementById("A").style.backgroundColor = "aliceblue";
+            document.getElementById("A").style.color = "black";
+        }
+        else if(e.keyCode == 83) {
+            sPressed = false;
+            document.getElementById("S").style.backgroundColor = "aliceblue";
+            document.getElementById("S").style.color = "black";
+        }
+        else if(e.keyCode == 68) {
+            dPressed = false;
+            document.getElementById("D").style.backgroundColor = "aliceblue";
+            document.getElementById("D").style.color = "black";
+        }
+    }
+
+
+
+</script>
+<script lang="text/javascript" src="buffer-loader.js"></script>
+<script lang="text/javascript" src="audio.js"></script>
+</body>
+</html>
